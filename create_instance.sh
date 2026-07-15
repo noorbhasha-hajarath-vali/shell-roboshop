@@ -25,6 +25,6 @@ do
             --query 'Reservations[0].Instances[0].PublicIpAddress' \
             --output text)
     fi
-done
 
-echo "$INSTANCE: $IP"
+    echo "$INSTANCE: $IP"
+done
