@@ -8,6 +8,7 @@ LOG_FILE=$LOG_DIR/$FILE_NAME.log
 
 if [$USER_ID -ne 0 ]; then
     echo "User doesn't have root privilages, Run with sudo"
+    exit 1
 fi
 
 echo "Process Started at $(date)"
