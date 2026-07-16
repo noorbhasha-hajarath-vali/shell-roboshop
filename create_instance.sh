@@ -25,4 +25,4 @@ else
     echo "Hosted Zone ID: ${ZONE_ID#/hostedzone/}"
 fi
 
-echo "$ZONE_ID"
+
