@@ -1,9 +1,10 @@
 #!/bin/bash
 
+source ./common.sh
+
 AMI_ID="ami-002192a70217ac181"
 SG_ID="sg-014ee579326daf5b9"
 DOMAIN="ayri.fun"
-
 
 for INSTANCE in "$@"
 do
@@ -17,6 +18,8 @@ do
         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE}]" \
         --query 'Instances[0].InstanceId' \
         --output text)
+
+    echo "Instance ID: $INSTANCE_ID"
 
     aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
 
@@ -36,9 +39,13 @@ do
         RECORD_NAME="$INSTANCE.$DOMAIN"
     fi
 
-    export DOMAIN RECORD_NAME IP
+    export DOMAIN
+    export RECORD_NAME
+    export IP
 
     ./dns_record.sh
 
-    echo "$INSTANCE -> $IP"
+    echo "$INSTANCE --> $IP"
 done
+
+echo "Completed at: $(date)"
