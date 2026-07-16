@@ -9,4 +9,20 @@ ZONE_ID=$(aws route53 list-hosted-zones-by-name \
     --query "HostedZones[?Name=='$DOMAIN.'].Id | [0]" \
     --output text)
 
+if [ "$ZONE_ID" = "None" ]; then
+    echo "Hosted zone does not exist. Creating..."
+
+    ZONE_ID=$(aws route53 create-hosted-zone \
+        --name "$DOMAIN" \
+        --caller-reference "$(date +%s)" \
+        --query "HostedZone.Id" \
+        --output text)
+
+    echo "Hosted zone created successfully."
+    echo "Hosted Zone ID: ${ZONE_ID#/hostedzone/}"
+else
+    echo "Hosted zone already exists."
+    echo "Hosted Zone ID: ${ZONE_ID#/hostedzone/}"
+fi
+
 echo "$ZONE_ID"
