@@ -4,6 +4,7 @@ AMI_ID="ami-002192a70217ac181"
 SG_ID="sg-014ee579326daf5b9"
 DOMAIN="ayri.fun"
 
+
 for INSTANCE in "$@"
 do
     echo "Creating instance: $INSTANCE"
@@ -17,44 +18,27 @@ do
         --query 'Instances[0].InstanceId' \
         --output text)
 
-    echo "Instance ID: $INSTANCE_ID"
-
-    # Wait until instance is running
     aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
 
-    if [ "$INSTANCE" != "frontend" ]; then
-        while true
-        do
-            IP=$(aws ec2 describe-instances \
-                --instance-ids "$INSTANCE_ID" \
-                --query 'Reservations[0].Instances[0].PrivateIpAddress' \
-                --output text)
-
-            [ "$IP" != "None" ] && break
-            sleep 2
-        done
-
-        RECORD_NAME="$INSTANCE.$DOMAIN"
-
-    else
-        while true
-        do
-            IP=$(aws ec2 describe-instances \
-                --instance-ids "$INSTANCE_ID" \
-                --query 'Reservations[0].Instances[0].PublicIpAddress' \
-                --output text)
-
-            [ "$IP" != "None" ] && break
-            sleep 2
-        done
+    if [ "$INSTANCE" = "frontend" ]; then
+        IP=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
 
         RECORD_NAME="$DOMAIN"
+    else
+        IP=$(aws ec2 describe-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query 'Reservations[0].Instances[0].PrivateIpAddress' \
+            --output text)
+
+        RECORD_NAME="$INSTANCE.$DOMAIN"
     fi
 
-    export DOMAIN
-    export RECORD_NAME
-    export IP
+    export DOMAIN RECORD_NAME IP
 
-    sh dns_record.sh
+    ./dns_record.sh
 
+    echo "$INSTANCE -> $IP"
 done
