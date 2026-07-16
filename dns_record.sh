@@ -1,9 +1,5 @@
 #!/bin/bash
 
-DOMAIN="ayri.fun"
-SUBDOMAIN="test"          # Use "@" or leave empty for the root domain
-IP_ADDRESS="13.233.100.200"
-
 # ==========================
 # Get Hosted Zone ID
 # ==========================
@@ -33,15 +29,6 @@ ZONE_ID=${ZONE_ID#/hostedzone/}
 
 echo "Hosted Zone ID: $ZONE_ID"
 
-# ==========================
-# Record Name
-# ==========================
-
-if [ -z "$SUBDOMAIN" ] || [ "$SUBDOMAIN" = "@" ]; then
-    RECORD_NAME="$DOMAIN"
-else
-    RECORD_NAME="$SUBDOMAIN.$DOMAIN"
-fi
 
 # ==========================
 # Create Change Batch
@@ -54,12 +41,12 @@ cat > /tmp/record.json <<EOF
     {
       "Action": "UPSERT",
       "ResourceRecordSet": {
-        "Name": "$SUBDOMAIN.$DOMAIN",
+        "Name": "$RECORD_NAME",
         "Type": "A",
         "TTL": 300,
         "ResourceRecords": [
           {
-            "Value": "$IP_ADDRESS"
+            "Value": "$IP"
           }
         ]
       }
@@ -79,4 +66,6 @@ aws route53 change-resource-record-sets \
 echo "DNS record created/updated successfully."
 
 aws route53 list-resource-record-sets \
-    --hosted-zone-id "$ZONE_ID"
+    --hosted-zone-id "$ZONE_ID" \
+    --query "ResourceRecordSets[*].[Name,ResourceRecords[*].Value]" \
+    --output table

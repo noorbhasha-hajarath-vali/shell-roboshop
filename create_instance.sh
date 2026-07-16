@@ -4,25 +4,36 @@ AMI_ID=ami-002192a70217ac181
 SG_ID=sg-014ee579326daf5b9
 DOMAIN="ayri.fun"
 
-ZONE_ID=$(aws route53 list-hosted-zones-by-name \
-    --dns-name "$DOMAIN" \
-    --query "HostedZones[?Name=='$DOMAIN.'].Id | [0]" \
-    --output text)
 
-if [ "$ZONE_ID" = "None" ]; then
-    echo "Hosted zone does not exist. Creating..."
+for INSTANCE in "$@"
+do
+    aws ec2 run-instances \
+    --image-id $AMI_ID \
+    --instance-type t3.micro \
+    --key-name devops \
+    --security-group-ids $SG_ID \
+    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE}]" \
+    --query 'Instances[0].InstanceId' \
+    --output text
 
-    ZONE_ID=$(aws route53 create-hosted-zone \
-        --name "$DOMAIN" \
-        --caller-reference "$(date +%s)" \
-        --query "HostedZone.Id" \
-        --output text)
+    if [ "$INSTANCE" != "frontend" ]; then
+        IP=$(aws ec2 describe-instances \
+            --instance-ids i-0123456789abcdef0 \
+            --query 'Reservations[0].Instances[0].PrivateIpAddress' \
+            --output text)
+        RECORD_NAME=$INSTANCE.$DOMAIN
+            
+    else
+        IP=$(aws ec2 describe-instances \
+            --instance-ids i-0123456789abcdef0 \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+        RECORD_NAME=$DOMAIN
+    fi
 
-    echo "Hosted zone created successfully."
-    echo "Hosted Zone ID: ${ZONE_ID#/hostedzone/}"
-else
-    echo "Hosted zone already exists."
-    echo "Hosted Zone ID: ${ZONE_ID#/hostedzone/}"
-fi
+    export DOMAIN
+    export RECORD_NAME
+    export IP
 
-
+    sh dns_record.sh
+done
