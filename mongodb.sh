@@ -1,14 +1,25 @@
 #!/bin/bash
 
-USER_ID=$(id -u)
+source ./common.sh
 
-LOG_DIR=/var/log/shell-roboshop
-FILE_NAME=$(basename $0 .sh)
-LOG_FILE=$LOG_DIR/$FILE_NAME.log
+CHECK_ROOT
 
-if [ $USER_ID -ne 0 ]; then
-    echo "User doesn't have root privilages, Run with sudo"
-    exit 1
-fi
+cp mongo.repo /etc/yum.repos.d/mongo.repo
+VALIDATE $? "Copy MongoDB Repo"
 
-echo "Process Started at $(date)"
+dnf install mongodb-org -y
+VALIDATE $? "Install MongoDB"
+
+systemctl enable mongod
+VALIDATE $? "Enable MongoDB"
+
+systemctl start mongod
+VALIDATE $? "Start MongoDB"
+
+sed -i 's/127.0.0.1/0.0.0.0/' /etc/mongod.conf
+VALIDATE $? "Update MongoDB Config"
+
+systemctl restart mongod
+VALIDATE $? "Restart MongoDB"
+
+COMPLETE
