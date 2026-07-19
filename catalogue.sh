@@ -1,5 +1,7 @@
 #!/bin/bash
 
+LOG_DIR="/var/log/shell-roboshop"
+
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 source "$SCRIPT_DIR/common.sh"
 
