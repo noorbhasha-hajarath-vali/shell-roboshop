@@ -9,63 +9,46 @@ CHECK_ROOT
 
 MONGODB_HOST="mongodb.ayri.fun"
 
-# dnf module disable nodejs -y
-# VALIDATE $? "Disable NodeJS Default Module"
-
-# dnf module enable nodejs:20 -y
-# VALIDATE $? "Enable NodeJS 20 Module"
-
 curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-VALIDATE $? "Get NodeJS Version 20"
 
-dnf install nodejs -y
-VALIDATE $? "Install NodeJS"
+dnf install -y nodejs
 
-id roboshop &>/dev/null
-if [ $? -ne 0 ]; then
-    useradd --system --home /app --shell /sbin/nologin --comment "roboshop system user" roboshop
-    VALIDATE $? "Create Roboshop User"
+if ! id roboshop &>/dev/null; then
+    useradd --system \
+        --home /app \
+        --shell /sbin/nologin \
+        --comment "roboshop system user" \
+        roboshop
 else
     echo "Roboshop User Already Exists"
 fi
 
 mkdir -p /app
-VALIDATE $? "Create App Directory"
 
 curl -L -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip
-VALIDATE $? "Download Catalogue"
 
 cd /app
-VALIDATE $? "Change Directory"
 
 unzip -o /tmp/catalogue.zip
-VALIDATE $? "Extract Catalogue"
 
 npm install
-VALIDATE $? "Install NodeJS Dependencies"
 
-cp $SCRIPT_DIR/catalogue.service /etc/systemd/system/catalogue.service
-VALIDATE $? "Copy Catalogue Service"
+cp "$SCRIPT_DIR/catalogue.service" /etc/systemd/system/catalogue.service
 
 systemctl daemon-reload
-VALIDATE $? "Reload Systemd"
 
 systemctl enable catalogue
-VALIDATE $? "Enable Catalogue Service"
 
 systemctl start catalogue
-VALIDATE $? "Start Catalogue Service"
 
-cp $SCRIPT_DIR/mongo.repo /etc/yum.repos.d/mongo.repo
-VALIDATE $? "Copy MongoDB Repo"
+cp "$SCRIPT_DIR/mongo.repo" /etc/yum.repos.d/mongo.repo
 
-dnf install mongodb-mongosh -y
-VALIDATE $? "Install MongoDB Shell"
+dnf install -y mongodb-mongosh
 
 mongosh --host "$MONGODB_HOST" </app/db/master-data.js
-VALIDATE $? "Load Catalogue Data"
 
 systemctl restart catalogue
-VALIDATE $? "Restart Catalogue Service"
+
+echo "Catalogue Setup Completed"
 
 COMPLETE

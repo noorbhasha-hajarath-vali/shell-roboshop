@@ -1,6 +1,27 @@
 #!/bin/bash
 
 # ==========================================================
+# Strict Mode
+# ==========================================================
+
+set -Eeuo pipefail
+
+ERROR_HANDLER() {
+    echo >&3
+    echo "ERROR: Command Failed" >&3
+    echo "Line    : $1" >&3
+    echo "Command : $2" >&3
+    echo "Log File: $LOG_FILE" >&3
+
+    echo
+    echo "ERROR: Command Failed"
+    echo "Line    : $1"
+    echo "Command : $2"
+}
+
+trap 'ERROR_HANDLER $LINENO "$BASH_COMMAND"' ERR
+
+# ==========================================================
 # Logging
 # ==========================================================
 
@@ -14,7 +35,7 @@ mkdir -p "$LOG_DIR"
 # Save original stdout/stderr
 exec 3>&1 4>&2
 
-# Send everything else to the log file
+# Redirect everything else to log file
 exec >>"$LOG_FILE" 2>&1
 
 echo "=================================================================="
@@ -31,24 +52,6 @@ CHECK_ROOT() {
     if [ "$(id -u)" -ne 0 ]; then
         echo "ERROR: Please run this script as root." >&3
         echo "ERROR: Please run this script as root."
-        exit 1
-    fi
-}
-
-# ==========================================================
-# Validation
-# ==========================================================
-
-VALIDATE() {
-    local STATUS=$1
-    local MESSAGE=$2
-
-    if [ "$STATUS" -eq 0 ]; then
-        echo "$MESSAGE ... SUCCESS" >&3
-        echo "$MESSAGE ... SUCCESS"
-    else
-        echo "$MESSAGE ... FAILED" >&3
-        echo "$MESSAGE ... FAILED"
         exit 1
     fi
 }

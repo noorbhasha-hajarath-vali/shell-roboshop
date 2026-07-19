@@ -7,6 +7,12 @@ AMI_ID="ami-002192a70217ac181"
 SG_ID="sg-014ee579326daf5b9"
 DOMAIN="ayri.fun"
 
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <instance-name> [instance-name ...]" >&3
+    echo "Usage: $0 <instance-name> [instance-name ...]"
+    exit 1
+fi
+
 for INSTANCE in "$@"
 do
     echo "Creating Instance : $INSTANCE" >&3
@@ -21,10 +27,7 @@ do
         --query 'Instances[0].InstanceId' \
         --output text)
 
-    VALIDATE $? "Create EC2 Instance"
-
     aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
-    VALIDATE $? "Wait for Instance"
 
     if [ "$INSTANCE" = "frontend" ]; then
         IP=$(aws ec2 describe-instances \
@@ -42,8 +45,6 @@ do
         RECORD_NAME="$INSTANCE.$DOMAIN"
     fi
 
-    VALIDATE $? "Get Instance IP"
-
     ZONE_ID=$(aws route53 list-hosted-zones-by-name \
         --dns-name "$DOMAIN" \
         --query "HostedZones[?Name=='$DOMAIN.'].Id | [0]" \
@@ -59,7 +60,9 @@ do
 
     ZONE_ID=${ZONE_ID#/hostedzone/}
 
-    cat >/tmp/record.json <<EOF
+    RECORD_FILE=$(mktemp)
+
+    cat >"$RECORD_FILE" <<EOF
 {
   "Comment": "UPSERT A Record",
   "Changes": [{
@@ -78,9 +81,12 @@ EOF
 
     aws route53 change-resource-record-sets \
         --hosted-zone-id "$ZONE_ID" \
-        --change-batch file:///tmp/record.json
+        --change-batch "file://$RECORD_FILE"
 
-    VALIDATE $? "Create DNS Record"
+    rm -f "$RECORD_FILE"
+
+    echo "Instance Created Successfully : $INSTANCE ($IP)" >&3
+    echo "Instance Created Successfully : $INSTANCE ($IP)"
 done
 
 COMPLETE
